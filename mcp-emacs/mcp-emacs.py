@@ -71,35 +71,6 @@ def escape_lisp_for_emacsclient(code: str) -> str:
     return f"'{escaped_code}'"
 
 @mcp.tool()
-async def run_command(command: str, context: Optional[Any] = None) -> Dict[str, str]:
-    """
-    Executes a zsh command on the local machine. Use for system operations, file inspection, or utilities. 
-    Commands run with user permissions.
-    
-    Args:
-        command: Line to run. Not escaped. If the command fails, consider how you escaped it.
-        context: Optional context object for logging (ignored)
-        
-    Returns:
-        Dictionary with stdout and stderr output
-    """
-    if not command:
-        raise ValueError("Command is required")
-    
-    try:
-        stdout, stderr = await exec_async(command)
-        return {
-            "STDOUT": stdout,
-            "STDERR": stderr
-        }
-    except ExecError as error:
-        return {
-            "ERROR": error.message,
-            "STDERR": error.stderr,
-            "STDOUT": error.stdout
-        }
-
-@mcp.tool()
 async def run_emacsclient_code(code: str, context: Optional[Any] = None) -> Dict[str, str]:
     """
     Executes Emacs Lisp code via emacsclient. Useful functions include (ai-add-journal text) 
@@ -334,70 +305,6 @@ async def emacs_get_org_properties(
             "STDERR": error.stderr,
             "STDOUT": error.stdout
         }
-
-@mcp.prompt()
-async def include_command_output(command: str) -> List[Dict[str, Any]]:
-    """
-    Executes a command and formats its output (stdout/stderr) as a conversation 
-    to provide context for your response.
-    
-    Args:
-        command: Command to run
-        
-    Returns:
-        Messages formatted for conversation context
-    """
-    if not command:
-        raise ValueError("Command is required")
-    
-    try:
-        stdout, stderr = await exec_async(command)
-        
-        messages = [
-            {
-                "role": "user",
-                "content": f"I ran the following command, if there is any output it will be shown below:\n{command}"
-            }
-        ]
-        
-        if stdout:
-            messages.append({
-                "role": "user",
-                "content": "STDOUT:\n" + stdout
-            })
-        
-        if stderr:
-            messages.append({
-                "role": "user",
-                "content": "STDERR:\n" + stderr
-            })
-        
-        return messages
-    except ExecError as error:
-        messages = [
-            {
-                "role": "user",
-                "content": f"I ran the following command, but it failed:\n{command}"
-            },
-            {
-                "role": "user",
-                "content": f"ERROR:\n{error.message}"
-            }
-        ]
-        
-        if error.stderr:
-            messages.append({
-                "role": "user",
-                "content": "STDERR:\n" + error.stderr
-            })
-            
-        if error.stdout:
-            messages.append({
-                "role": "user",
-                "content": "STDOUT:\n" + error.stdout
-            })
-            
-        return messages
 
 @mcp.resource(uri="emacs-buffer:{buffer}")
 async def emacs_buffer(buffer: str) -> Dict[str, str]:
